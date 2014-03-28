@@ -45,4 +45,6 @@ Help
                             '127.0.0.1')
       --access-list=ACL     List of IP addresses e.g '127.0.0.1, 192.168.0.2'
 
-Based on: http://www.cs.earlham.edu/~charliep/ecoi/serial/pyserial-2.2/examples/tcp_serial_redirect.py
+Thanks to
+---------
+This is based on http://www.cs.earlham.edu/~charliep/ecoi/serial/pyserial-2.2/examples/tcp_serial_redirect.py
