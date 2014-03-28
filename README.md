@@ -1,7 +1,24 @@
 serial2tcp
 ==========
 
-    Usage: serial2tcpname [options]
+Instalation
+-----------
+You can install from pip:
+    # pip install serial2tcp
+
+or manual:
+    git clone git://github.com/mosquito/serial2tcp.git
+    cd serial2tcp
+    python setup.py install
+
+Redirect USB-Serial
+-------------------
+For redirect /dev/ttyUSB0 with baudrate 9600 bps and 192.168.2.1 can connect to that:
+    # serial2tcp -p /dev/ttyUSB0 -b 9600 -l 0.0.0.0 --allow-list='192.168.2.1'
+
+Help
+----
+    Usage: serial2tcp [options]
 
     Simple Serial to Network (TCP/IP) redirector.
 

@@ -76,8 +76,8 @@ if __name__ == '__main__':
     descr = '''WARNING: You have to allow connections only from the addresses
 in the "--allow-list" option. e.g. --allow-list='10.0.0.1, 172.16.0.1, 192.168.0.1'
 NOTICE: This service supports only one tcp connection per instance.'''
-    usage = "USAGE: %progname [options]\n\nSimple Serial to Network (TCP/IP) redirector."
-    parser = OptionParser(usage=usage, version='%progname 0.5', description=descr)
+    usage = "USAGE: %prog [options]\n\nSimple Serial to Network (TCP/IP) redirector."
+    parser = OptionParser(usage=usage, version='%prog 0.5', description=descr)
     parser.add_option("-p", "--port", dest="serial", help="Serial port, a number, defualt = '/dev/tty0'", type=str, default='/dev/tty0')
     parser.add_option("-b", "--baud", dest="baudrate", help="Baudrate, default 115200", default=115200, type=int)
     parser.add_option("-r", "--rtscts", dest="rtscts", help="Enable RTS/CTS flow control (default off)", action='store_true', default=False)
