@@ -4,7 +4,13 @@
 #redirect data from a TCP/IP connection to a serial port and vice versa
 #requires Python 2.2 'cause socket.sendall is used
 
-import sys, os, serial, threading, socket, logging, signal
+import sys
+import os
+import serial
+import threading
+import socket
+import logging
+import signal
 
 log = logging.getLogger('serial2tcp')
 log.setLevel(logging.DEBUG)
@@ -13,6 +19,7 @@ ch = logging.StreamHandler()
 ch.setLevel(logging.DEBUG)
 ch.setFormatter(formatter)
 log.addHandler(ch)
+
 
 class Redirector:
     def __init__(self, serial, socket):
@@ -32,12 +39,16 @@ class Redirector:
         """loop forever and copy serial->socket"""
         while self.alive:
             try:
-                data = self.serial.read(1)              #read one, blocking
-                n = self.serial.inWaiting()             #look if there is more
+                #read one, blocking
+                data = self.serial.read(1)
+                #look if there is more
+                n = self.serial.inWaiting()
                 if n:
-                    data = data + self.serial.read(n)   #and get as much as possible
+                    #and get as much as possible
+                    data = data + self.serial.read(n)
                 if data:
-                    self.socket.sendall(data)           #send it over TCP
+                    #send it over TCP
+                    self.socket.sendall(data)
             except socket.error, msg:
                 log.error(msg)
                 #probably got disconnected
@@ -51,14 +62,13 @@ class Redirector:
                 data = self.socket.recv(1024)
                 if not data:
                     break
-                self.serial.write(data) #get a bunch of bytes and send them
+                self.serial.write(data)  # get a bunch of bytes and send them
             except socket.error as msg:
                 log.error(repr(msg))
                 break
             except Exception as e:
                 log.critical(repr(e))
                 break
-
 
         self.alive = False
         self.thread_read.join()
@@ -73,27 +83,40 @@ if __name__ == '__main__':
     from optparse import OptionParser
     ser = serial.Serial()
 
-    descr = '''WARNING: You have to allow connections only from the addresses
-in the "--allow-list" option. e.g. --allow-list='10.0.0.1, 172.16.0.1, 192.168.0.1'
-NOTICE: This service supports only one tcp connection per instance.'''
-    usage = "USAGE: %prog [options]\n\nSimple Serial to Network (TCP/IP) redirector."
+    descr = 'WARNING: You have to allow connections only from the addresses' \
+            'in the "--allow-list" option. e.g.' \
+            '--allow-list="10.0.0.1, 172.16.0.1, 192.168.0.1"\n' \
+            'NOTICE: This service supports only ' \
+            'one tcp connection per instance.'
+
+    usage = "USAGE: %prog [options]\n\nSimple Serial to Network (TCP/IP)" \
+            "redirector."
+
     parser = OptionParser(usage=usage, version='%prog 0.5', description=descr)
-    parser.add_option("-p", "--port", dest="serial", help="Serial port, a number, defualt = '/dev/tty0'", type=str, default='/dev/tty0')
-    parser.add_option("-b", "--baud", dest="baudrate", help="Baudrate, default 115200", default=115200, type=int)
-    parser.add_option("-r", "--rtscts", dest="rtscts", help="Enable RTS/CTS flow control (default off)", action='store_true', default=False)
-    parser.add_option("-x", "--xonxoff", dest="xonxoff", help="Enable software flow control (default off)", action='store_true', default=False)
-    parser.add_option("-P", "--localport", dest="port", help="TCP/IP port on which to run the server (default 9100)", type=int, default=9100)
-    parser.add_option("-l", "--listen", dest="listen", help="Listen address on which to run the server (default '127.0.0.1')", type=str, default='127.0.0.1')
-    parser.add_option('--access-list', dest='acl', type=str, default="127.0.0.1", help="List of IP addresses e.g '127.0.0.1, 192.168.0.2'")
+    parser.add_option("-p", "--port", dest="serial",
+                      help="Serial port, a number, defualt = '/dev/tty0'", type=str, default='/dev/tty0')
+    parser.add_option("-b", "--baud", dest="baudrate",
+                      help="Baudrate, default 115200", default=115200, type=int)
+    parser.add_option("-r", "--rtscts", dest="rtscts",
+                      help="Enable RTS/CTS flow control (default off)", action='store_true', default=False)
+    parser.add_option("-x", "--xonxoff", dest="xonxoff",
+                      help="Enable software flow control (default off)", action='store_true', default=False)
+    parser.add_option("-P", "--localport", dest="port",
+                      help="TCP/IP port on which to run the server (default 9100)", type=int, default=9100)
+    parser.add_option("-l", "--listen", dest="listen",
+                      help="Listen address on which to run the server (default '127.0.0.1')", type=str, default='127.0.0.1')
+    parser.add_option(
+        '--access-list', dest='acl', type=str, default="127.0.0.1",
+        help="List of IP addresses e.g '127.0.0.1, 192.168.0.2'")
 
     (options, args) = parser.parse_args()
 
-    ser.port     = options.serial
+    ser.port = options.serial
     ser.baudrate = options.baudrate
-    ser.rtscts   = options.rtscts
-    ser.xonxoff  = options.xonxoff
+    ser.rtscts = options.rtscts
+    ser.xonxoff = options.xonxoff
 
-    access_list  = set([ip.strip(" ") for ip in options.acl.split(',')])
+    access_list = set([ip.strip(" ") for ip in options.acl.split(',')])
 
     #required so that the reader thread can exit
     ser.timeout = 1
@@ -107,7 +130,7 @@ NOTICE: This service supports only one tcp connection per instance.'''
         sys.exit(1)
 
     srv = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    srv.bind( (options.listen, options.port) )
+    srv.bind((options.listen, options.port))
     srv.listen(1)
 
     def signal_handler(signal, frame):
