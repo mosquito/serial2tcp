@@ -1,87 +1,15 @@
 #!/usr/bin/env python
 
-#(C)2002-2003 Chris Liechti <cliechti@gmx.net>
-#redirect data from a TCP/IP connection to a serial port and vice versa
-#requires Python 2.2 'cause socket.sendall is used
-
 import sys
-import os
-import serial
-import threading
-import socket
 import logging
 import signal
 
+logging.basicConfig(level=logging.DEBUG, format='%(asctime)s %(levelname)-8s %(message)s')
 log = logging.getLogger('serial2tcp')
-log.setLevel(logging.DEBUG)
-formatter = logging.Formatter('%(asctime)s %(levelname)-8s %(message)s')
-ch = logging.StreamHandler()
-ch.setLevel(logging.DEBUG)
-ch.setFormatter(formatter)
-log.addHandler(ch)
-
-
-class Redirector:
-    def __init__(self, serial, socket):
-        self.serial = serial
-        self.socket = socket
-
-    def shortcut(self):
-        """connect the serial port to the tcp port by copying everything
-           from one side to the other"""
-        self.alive = True
-        self.thread_read = threading.Thread(target=self.reader)
-        self.thread_read.setDaemon(1)
-        self.thread_read.start()
-        self.writer()
-
-    def reader(self):
-        """loop forever and copy serial->socket"""
-        while self.alive:
-            try:
-                #read one, blocking
-                data = self.serial.read(1)
-                #look if there is more
-                n = self.serial.inWaiting()
-                if n:
-                    #and get as much as possible
-                    data = data + self.serial.read(n)
-                if data:
-                    #send it over TCP
-                    self.socket.sendall(data)
-            except socket.error, msg:
-                log.error(msg)
-                #probably got disconnected
-                break
-        self.alive = False
-
-    def writer(self):
-        """loop forever and copy socket->serial"""
-        while self.alive:
-            try:
-                data = self.socket.recv(1024)
-                if not data:
-                    break
-                self.serial.write(data)  # get a bunch of bytes and send them
-            except socket.error as msg:
-                log.error(repr(msg))
-                break
-            except Exception as e:
-                log.critical(repr(e))
-                break
-
-        self.alive = False
-        self.thread_read.join()
-
-    def stop(self):
-        """Stop copying"""
-        if self.alive:
-            self.alive = False
-            self.thread_read.join()
 
 if __name__ == '__main__':
-    from optparse import OptionParser
-    ser = serial.Serial()
+    from serial2tcp import Server, SerialAsync
+    from argparse import ArgumentParser
 
     descr = 'WARNING: You have to allow connections only from the addresses' \
             'in the "--allow-list" option. e.g.' \
@@ -89,79 +17,55 @@ if __name__ == '__main__':
             'NOTICE: This service supports only ' \
             'one tcp connection per instance.'
 
-    usage = "USAGE: %prog [options]\n\nSimple Serial to Network (TCP/IP)" \
+    usage = "USAGE: %(prog)s [options]\n\nSimple Serial to Network (TCP/IP)" \
             "redirector."
 
-    parser = OptionParser(usage=usage, version='%prog 0.5', description=descr)
-    parser.add_option("-p", "--port", dest="serial",
-                      help="Serial port, a number, defualt = '/dev/tty0'", type=str, default='/dev/tty0')
-    parser.add_option("-b", "--baud", dest="baudrate",
-                      help="Baudrate, default 115200", default=115200, type=int)
-    parser.add_option("-r", "--rtscts", dest="rtscts",
-                      help="Enable RTS/CTS flow control (default off)", action='store_true', default=False)
-    parser.add_option("-x", "--xonxoff", dest="xonxoff",
-                      help="Enable software flow control (default off)", action='store_true', default=False)
-    parser.add_option("-P", "--localport", dest="port",
-                      help="TCP/IP port on which to run the server (default 9100)", type=int, default=9100)
-    parser.add_option("-l", "--listen", dest="listen",
-                      help="Listen address on which to run the server (default '127.0.0.1')", type=str, default='127.0.0.1')
-    parser.add_option(
-        '--access-list', dest='acl', type=str, default="127.0.0.1",
-        help="List of IP addresses e.g '127.0.0.1, 192.168.0.2'")
+    parser = ArgumentParser(usage=usage, version='%(prog)s 0.5', description=descr)
+    parser.add_argument(
+        "-p", "--port", dest="serial",
+        help="Serial port, a number, defualt = '/dev/tty0'", type=str, default='/dev/tty0'
+    )
+    parser.add_argument(
+        "-b", "--baud", dest="baudrate",
+        help="Baudrate, default 115200", default=115200, type=int
+    )
+    parser.add_argument(
+        "-r", "--rtscts", dest="rtscts",
+        help="Enable RTS/CTS flow control (default off)", action='store_true', default=False
+    )
+    parser.add_argument(
+        "-x", "--xonxoff", dest="xonxoff",
+        help="Enable software flow control (default off)", action='store_true', default=False
+    )
+    parser.add_argument(
+        "-P", "--localport", dest="port",
+        help="TCP/IP port on which to run the server (default 9100)", type=int, default=9100
+    )
+    parser.add_argument(
+        "-l", "--listen", dest="listen",
+        help="Listen address on which to run the server (default '127.0.0.1')", default='127.0.0.1'
+    )
+    parser.add_argument(
+        '-A', '--acl', dest='acl', default="127.0.0.1", action='store', nargs='*', type=str, metavar='IP',
+        help="List of IP addresses e.g '127.0.0.1, 192.168.0.2'"
+    )
 
-    (options, args) = parser.parse_args()
-
-    ser.port = options.serial
-    ser.baudrate = options.baudrate
-    ser.rtscts = options.rtscts
-    ser.xonxoff = options.xonxoff
-
-    access_list = set([ip.strip(" ") for ip in options.acl.split(',')])
-
-    #required so that the reader thread can exit
-    ser.timeout = 1
-
-    log.info("TCP/IP to Serial redirector (Ctrl-C to quit)")
-
-    try:
-        ser.open()
-    except serial.SerialException, e:
-        log.fatal("Could not open serial port %s: %s" % (ser.portstr, e))
-        sys.exit(1)
-
-    srv = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    srv.bind((options.listen, options.port))
-    srv.listen(1)
+    options = parser.parse_args(sys.argv[1:])
 
     def signal_handler(signal, frame):
-        try:
-            srv.close()
-        except Exception as e:
-            log.warning(repr(e))
-        finally:
-            sys.exit(0)
+        sys.exit(0)
+
+    try:
+        ser = SerialAsync(baudrate=options.baudrate, port=options.serial, rtscts=options.rtscts, xonxoff=options.xonxoff)
+    except Exception, e:
+        log.fatal("Could not open serial port \"%s\": %s" % (options.serial, e))
+        sys.exit(1)
+
+    Server.SERIAL = ser
+    srv = Server(use_acl=True if options.acl else False, host=options.listen, port=options.port)
+
+    for ip in options.acl:
+        srv.ACL.add(ip)
 
     signal.signal(signal.SIGINT, signal_handler)
-
-    while 1:
-        try:
-            log.info("Waiting for connection...")
-            connection, addr = srv.accept()
-            address, port = addr
-            log.info('Connecting with tcp://{0}:{1}'.format(address, port))
-            if address in access_list:
-                #enter console->serial loop
-                r = Redirector(ser, connection)
-                r.shortcut()
-            else:
-                log.error('Address {0} not in access list.'.format(address))
-        except socket.error, msg:
-            log.error(msg)
-        finally:
-            try:
-                connection.close()
-                log.info('Disconnecting')
-            except NameError:
-                pass
-            except Exception as e:
-                log.warning(repr(e))
+    srv.serve_forever()
