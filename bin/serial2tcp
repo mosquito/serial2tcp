@@ -49,7 +49,7 @@ class Redirector:
                 if data:
                     #send it over TCP
                     self.socket.sendall(data)
-            except socket.error, msg:
+            except socket.error as msg:
                 log.error(msg)
                 #probably got disconnected
                 break
@@ -125,7 +125,7 @@ if __name__ == '__main__':
 
     try:
         ser.open()
-    except serial.SerialException, e:
+    except serial.SerialException as e:
         log.fatal("Could not open serial port %s: %s" % (ser.portstr, e))
         sys.exit(1)
 
@@ -155,7 +155,7 @@ if __name__ == '__main__':
                 r.shortcut()
             else:
                 log.error('Address {0} not in access list.'.format(address))
-        except socket.error, msg:
+        except socket.error as msg:
             log.error(msg)
         finally:
             try:
