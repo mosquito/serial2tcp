@@ -1,8 +1,10 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 #(C)2002-2003 Chris Liechti <cliechti@gmx.net>
 #redirect data from a TCP/IP connection to a serial port and vice versa
 #requires Python 2.2 'cause socket.sendall is used
+
+# 2017.10.27 add python3
 
 import sys
 import os
@@ -49,7 +51,7 @@ class Redirector:
                 if data:
                     #send it over TCP
                     self.socket.sendall(data)
-            except socket.error, msg:
+            except socket.error as msg:
                 log.error(msg)
                 #probably got disconnected
                 break
@@ -125,7 +127,7 @@ if __name__ == '__main__':
 
     try:
         ser.open()
-    except serial.SerialException, e:
+    except serial.SerialException as e:
         log.fatal("Could not open serial port %s: %s" % (ser.portstr, e))
         sys.exit(1)
 
@@ -155,7 +157,7 @@ if __name__ == '__main__':
                 r.shortcut()
             else:
                 log.error('Address {0} not in access list.'.format(address))
-        except socket.error, msg:
+        except socket.error as msg:
             log.error(msg)
         finally:
             try:
