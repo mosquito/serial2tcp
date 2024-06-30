@@ -93,7 +93,7 @@ if __name__ == '__main__':
     usage = "USAGE: %prog [options]\n\nSimple Serial to Network (TCP/IP)" \
             "redirector."
 
-    parser = OptionParser(usage=usage, version='%prog 0.5.2', description=descr)
+    parser = OptionParser(usage=usage, version='%prog 0.5.3', description=descr)
     parser.add_option("-p", "--port", dest="serial",
                       help="Serial port, a number, defualt = '/dev/tty0'", type=str, default='/dev/tty0')
     parser.add_option("-b", "--baud", dest="baudrate",
