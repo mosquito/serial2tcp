@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-#(C)2002-2003 Chris Liechti <cliechti@gmx.net>
+#(C)2002-2024 Chris Liechti <cliechti@gmx.net>
 #redirect data from a TCP/IP connection to a serial port and vice versa
 #requires Python 2.2 'cause socket.sendall is used
 
@@ -32,8 +32,7 @@ class Redirector:
         """connect the serial port to the tcp port by copying everything
            from one side to the other"""
         self.alive = True
-        self.thread_read = threading.Thread(target=self.reader)
-        self.thread_read.setDaemon(1)
+        self.thread_read = threading.Thread(target=self.reader, daemon=True)
         self.thread_read.start()
         self.writer()
 
@@ -94,7 +93,7 @@ if __name__ == '__main__':
     usage = "USAGE: %prog [options]\n\nSimple Serial to Network (TCP/IP)" \
             "redirector."
 
-    parser = OptionParser(usage=usage, version='%prog 0.5', description=descr)
+    parser = OptionParser(usage=usage, version='%prog 0.5.2', description=descr)
     parser.add_option("-p", "--port", dest="serial",
                       help="Serial port, a number, defualt = '/dev/tty0'", type=str, default='/dev/tty0')
     parser.add_option("-b", "--baud", dest="baudrate",
